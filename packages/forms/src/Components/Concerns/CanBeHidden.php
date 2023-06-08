@@ -8,18 +8,18 @@ use Illuminate\Support\Arr;
 
 trait CanBeHidden
 {
-    protected bool | Closure $isHidden = false;
+    protected bool|Closure $isHidden = false;
 
-    protected bool | Closure $isVisible = true;
+    protected bool|Closure $isVisible = true;
 
-    public function hidden(bool | Closure $condition = true): static
+    public function hidden(bool|Closure $condition = true): static
     {
         $this->isHidden = $condition;
 
         return $this;
     }
 
-    public function hiddenOn(string | array $contexts): static
+    public function hiddenOn(string|array $contexts): static
     {
         $this->hidden(static function (string $context, HasForms $livewire) use ($contexts): bool {
             foreach (Arr::wrap($contexts) as $hiddenContext) {
@@ -34,20 +34,36 @@ trait CanBeHidden
         return $this;
     }
 
-    public function when(bool | Closure $condition = true): static
+    public function autoHideIfChildrenHidden(bool|Closure $condition = true): static
+    {
+        $this->hidden(static function ($component): bool {
+            $shouldBeHidden = true;
+            foreach ($component->getChildComponents() as $child) {
+                if (!$child->isHidden) {
+                    $shouldBeHidden = false;
+                }
+            }
+
+            return $shouldBeHidden;
+        });
+
+        return $this;
+    }
+
+    public function when(bool|Closure $condition = true): static
     {
         $this->visible($condition);
 
         return $this;
     }
 
-    public function whenTruthy(string | array $paths): static
+    public function whenTruthy(string|array $paths): static
     {
         $paths = Arr::wrap($paths);
 
         $this->hidden(static function (Closure $get) use ($paths): bool {
             foreach ($paths as $path) {
-                if (! $get($path)) {
+                if (!$get($path)) {
                     return true;
                 }
             }
@@ -58,13 +74,13 @@ trait CanBeHidden
         return $this;
     }
 
-    public function whenFalsy(string | array $paths): static
+    public function whenFalsy(string|array $paths): static
     {
         $paths = Arr::wrap($paths);
 
         $this->hidden(static function (Closure $get) use ($paths): bool {
             foreach ($paths as $path) {
-                if ((bool) $get($path)) {
+                if ((bool)$get($path)) {
                     return true;
                 }
             }
@@ -75,14 +91,14 @@ trait CanBeHidden
         return $this;
     }
 
-    public function visible(bool | Closure $condition = true): static
+    public function visible(bool|Closure $condition = true): static
     {
         $this->isVisible = $condition;
 
         return $this;
     }
 
-    public function visibleOn(string | array $contexts): static
+    public function visibleOn(string|array $contexts): static
     {
         $this->visible(static function (string $context, HasForms $livewire) use ($contexts): bool {
             foreach (Arr::wrap($contexts) as $visibleContext) {
@@ -103,6 +119,6 @@ trait CanBeHidden
             return true;
         }
 
-        return ! $this->evaluate($this->isVisible);
+        return !$this->evaluate($this->isVisible);
     }
 }
